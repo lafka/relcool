@@ -107,8 +107,8 @@ format_detail({accessing, File, eaccess}) ->
     io_lib:format("permission denied accessing file ~s", [File]);
 format_detail({accessing, File, Type}) ->
     io_lib:format("error (~p) accessing file ~s", [Type, File]);
-format_detail({no_beam_files, EbinDir}) ->
-    io_lib:format("no beam files found in directory ~s", [EbinDir]);
+format_detail({missing_beam_files, EbinDir}) ->
+    io_lib:format("Unable to find required beam files in directory ~s", [EbinDir]);
 format_detail({not_a_directory, EbinDir}) ->
     io_lib:format("~s is not a directory when it should be a directory", [EbinDir]);
 format_detail({unable_to_load_app, AppDir, _}) ->
@@ -139,7 +139,7 @@ is_valid_otp_app(File) ->
         <<"ebin">> ->
             case filename:extension(File) of
                 <<".app">> ->
-                    has_at_least_one_beam(EbinDir, File);
+                    has_required_beams(EbinDir, File);
                 _ ->
                     {noresult, false}
             end;
@@ -147,16 +147,20 @@ is_valid_otp_app(File) ->
             {noresult, false}
     end.
 
--spec has_at_least_one_beam(file:name(), file:filename()) ->
+-spec has_required_beams(file:name(), file:filename()) ->
                                    {ok, rcl_app_info:t()} | {error, Reason::term()}.
-has_at_least_one_beam(EbinDir, File) ->
+has_required_beams(EbinDir, File) ->
+    {ok, [{application, _, AppDetail}]} = file:consult(File),
+    Modules = proplists:get_value(modules, AppDetail, []),
     case file:list_dir(EbinDir) of
         {ok, List} ->
             case lists:any(fun(NFile) -> lists:suffix(".beam", NFile) end, List) of
                 true ->
                     gather_application_info(EbinDir, File);
+                false when Modules =:= [] ->
+                    gather_application_info(EbinDir, File);
                 false ->
-                    {error, {no_beam_files, EbinDir}}
+                    {error, {missing_beam_files, EbinDir}}
             end;
         _ ->
             {error, {not_a_directory, EbinDir}}
