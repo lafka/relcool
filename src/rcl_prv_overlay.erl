@@ -200,6 +200,7 @@ generate_state_vars(State) ->
      {lib_dirs, rcl_state:lib_dirs(State)},
      {config_file, rcl_state:config_file(State)},
      {providers, rcl_state:providers(State)},
+     {vm_args, rcl_state:vm_args(State)},
      {sys_config, rcl_state:sys_config(State)},
      {root_dir, rcl_state:root_dir(State)},
      {default_release_name, case rcl_state:default_release(State) of
